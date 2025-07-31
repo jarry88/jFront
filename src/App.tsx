@@ -12,6 +12,8 @@ import ShipmentDetailNew from "./pages/ShipmentDetailNew";
 import ShipmentList from "./pages/ShipmentList";
 import CRMProfile from "./pages/CRMProfile";
 import RateSubmission from "./pages/RateSubmission";
+import UserList from "./pages/UserList";
+import UserForm from "./pages/UserForm";
 import NotFound from "./pages/NotFound";
 import { AuthDemo } from "./components/AuthDemo";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -88,6 +90,30 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRoles={["admin", "sales_manager", "operations"]}>
                   <RateSubmission />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <UserList />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users/new" 
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <UserForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/users/:id/edit" 
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <UserForm />
                 </ProtectedRoute>
               } 
             />

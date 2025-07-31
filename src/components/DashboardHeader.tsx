@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Settings, MessageCircle, Mail } from "lucide-react";
+import { Settings, MessageCircle, Mail, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleLogoClick = () => {
     navigate("/");
@@ -22,6 +24,13 @@ const DashboardHeader = () => {
   const handleRateSubmissionClick = () => {
     navigate("/submit-rates");
   };
+
+  const handleUserAdminClick = () => {
+    navigate("/admin/users");
+  };
+
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
 
   return (
     <header className="w-full bg-white border-b border-slate-200 px-6 py-4">
@@ -46,6 +55,19 @@ const DashboardHeader = () => {
 
         {/* Right side - Settings, Help, User */}
         <div className="flex items-center space-x-4">
+          {/* User Admin (only for admin users) */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUserAdminClick}
+              className="hover:bg-slate-100"
+              title="User Management"
+            >
+              <Users className="w-5 h-5" />
+            </Button>
+          )}
+
           {/* Rate Submission */}
           <Button
             variant="ghost"
@@ -79,7 +101,7 @@ const DashboardHeader = () => {
 
           {/* User Name */}
           <div className="text-sm font-medium text-foreground">
-            Newton Davis
+            {user ? `${user.first_name} ${user.last_name}` : "User"}
           </div>
         </div>
       </div>

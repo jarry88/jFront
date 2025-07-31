@@ -47,6 +47,59 @@ export interface UserInfo {
   created_at: string;
 }
 
+// User Admin 相关类型定义
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  company_id: number | null;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreate {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  company_id?: number | null;
+  password: string;
+  is_active?: boolean;
+}
+
+export interface UserUpdate {
+  username?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+  company_id?: number | null;
+  is_active?: boolean;
+  password?: string;
+}
+
+export interface UserListResponse {
+  items: User[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+export interface UserListParams {
+  page?: number;
+  size?: number;
+  search?: string;
+  role?: string;
+  is_active?: boolean;
+}
+
 // Shipment 相关类型定义
 export interface Shipment {
   id: number;
@@ -307,6 +360,84 @@ export class ApiClient {
   // 删除货运
   static async deleteShipment(id: number): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${API_BASE_URL}${API_V1_STR}/shipments/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(true),
+    });
+
+    return this.handleResponse<{ success: boolean; message: string }>(response);
+  }
+
+  // =============================================================================
+  // User Admin 相关API方法
+  // =============================================================================
+
+  // 获取用户列表
+  static async getUsers(params: UserListParams = {}): Promise<UserListResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.size) queryParams.append('size', params.size.toString());
+    if (params.search) queryParams.append('search', params.search);
+    if (params.role) queryParams.append('role', params.role);
+    if (params.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
+
+    const queryString = queryParams.toString();
+    const url = `${API_BASE_URL}${API_V1_STR}/admin/users/${queryString ? '?' + queryString : ''}`;
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+
+    return this.handleResponse<UserListResponse>(response);
+  }
+
+  // 根据ID获取用户详情
+  static async getUserById(id: number): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+
+    return this.handleResponse<User>(response);
+  }
+
+  // 创建用户
+  static async createUser(userData: UserCreate): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/`, {
+      method: "POST",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(userData),
+    });
+
+    return this.handleResponse<User>(response);
+  }
+
+  // 更新用户
+  static async updateUser(id: number, userData: UserUpdate): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
+      method: "PUT",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(userData),
+    });
+
+    return this.handleResponse<User>(response);
+  }
+
+  // 切换用户状态 (启用/禁用)
+  static async toggleUserStatus(id: number, is_active: boolean): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}/toggle-status`, {
+      method: "PATCH",
+      headers: this.getHeaders(true),
+      body: JSON.stringify({ is_active }),
+    });
+
+    return this.handleResponse<User>(response);
+  }
+
+  // 删除用户
+  static async deleteUser(id: number): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
       method: "DELETE",
       headers: this.getHeaders(true),
     });
