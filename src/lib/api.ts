@@ -9,18 +9,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    role: string;
-    company_id: number | null;
-    is_active: boolean;
-    last_login: string | null;
-    created_at: string;
-  };
+  user: User;
   token: {
     access_token: string;
     token_type: string;
@@ -34,20 +23,6 @@ export interface ApiError {
   error_code: number;
 }
 
-export interface UserInfo {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  company_id: number | null;
-  is_active: boolean;
-  last_login: string | null;
-  created_at: string;
-}
-
-// User Admin 相关类型定义
 export interface User {
   id: number;
   username: string;
@@ -59,7 +34,7 @@ export interface User {
   is_active: boolean;
   last_login: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface UserCreate {
@@ -100,6 +75,25 @@ export interface UserListParams {
   is_active?: boolean;
 }
 
+// 新增 RoleInfo 类型
+export interface RoleInfo {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoleCreate {
+  name: string;
+  description?: string;
+}
+
+export interface RoleUpdate {
+  name?: string;
+  description?: string;
+}
+
 // Shipment 相关类型定义
 export interface Shipment {
   id: number;
@@ -131,22 +125,15 @@ export interface Shipment {
   updated_at: string;
 }
 
-// 修正后端实际返回的格式
 export interface ShipmentListResponse {
-  items: Shipment[];  // 后端返回的是items数组，不是shipments
+  items: Shipment[];
   total: number;
   page: number;
   size: number;
   pages: number;
 }
 
-export interface ShipmentResponse {
-  success: boolean;
-  message: string;
-  data: Shipment;
-}
-
-export interface ShipmentCreate {
+export interface ShipmentCreateRequest {
   shipment_number: string;
   awb_bol_number: string;
   mode_id: number;
@@ -209,6 +196,7 @@ export interface ShipmentListParams {
   shipper_id?: number;
 }
 
+
 // API工具函数
 export class ApiClient {
   private static getHeaders(includeAuth: boolean = false): HeadersInit {
@@ -249,13 +237,13 @@ export class ApiClient {
   }
 
   // 获取当前用户信息
-  static async getCurrentUser(): Promise<UserInfo> {
+  static async getCurrentUser(): Promise<User> {
     const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/me`, {
       method: "GET",
       headers: this.getHeaders(true),
     });
 
-    return this.handleResponse<UserInfo>(response);
+    return this.handleResponse<User>(response);
   }
 
   // 用户登出
@@ -285,7 +273,7 @@ export class ApiClient {
   // 获取货运列表
   static async getShipments(params: ShipmentListParams = {}): Promise<ShipmentListResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.size) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -311,7 +299,6 @@ export class ApiClient {
       headers: this.getHeaders(true),
     });
 
-    // 后端详情接口直接返回shipment对象，不是包装的响应格式
     return this.handleResponse<Shipment>(response);
   }
 
@@ -336,7 +323,7 @@ export class ApiClient {
   }
 
   // 创建货运
-  static async createShipment(shipmentData: ShipmentCreate): Promise<Shipment> {
+  static async createShipment(shipmentData: ShipmentCreateRequest): Promise<Shipment> {
     const response = await fetch(`${API_BASE_URL}${API_V1_STR}/shipments/`, {
       method: "POST",
       headers: this.getHeaders(true),
@@ -374,7 +361,7 @@ export class ApiClient {
   // 获取用户列表
   static async getUsers(params: UserListParams = {}): Promise<UserListResponse> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.size) queryParams.append('size', params.size.toString());
     if (params.search) queryParams.append('search', params.search);
@@ -382,19 +369,32 @@ export class ApiClient {
     if (params.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
     const queryString = queryParams.toString();
-    const url = `${API_BASE_URL}${API_V1_STR}/admin/users/${queryString ? '?' + queryString : ''}`;
+    // 假设后端的路由前缀是 /auth/users
+    const url = `${API_BASE_URL}${API_V1_STR}/auth/users/${queryString ? '?' + queryString : ''}`;
 
     const response = await fetch(url, {
       method: "GET",
       headers: this.getHeaders(true),
     });
 
-    return this.handleResponse<UserListResponse>(response);
+    // 假设后端现在返回完整的 UserListResponse 对象
+    const data = await this.handleResponse<any>(response);
+    // 检查响应数据是否包含分页信息，如果没有，则自行构建
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        total: data.length, // 仅为占位符
+        page: 1,
+        size: data.length,
+        pages: 1,
+      } as UserListResponse;
+    }
+    return data as UserListResponse;
   }
 
   // 根据ID获取用户详情
   static async getUserById(id: number): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/users/${id}`, {
       method: "GET",
       headers: this.getHeaders(true),
     });
@@ -404,7 +404,7 @@ export class ApiClient {
 
   // 创建用户
   static async createUser(userData: UserCreate): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/`, {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/users/`, {
       method: "POST",
       headers: this.getHeaders(true),
       body: JSON.stringify(userData),
@@ -415,7 +415,7 @@ export class ApiClient {
 
   // 更新用户
   static async updateUser(id: number, userData: UserUpdate): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/users/${id}`, {
       method: "PUT",
       headers: this.getHeaders(true),
       body: JSON.stringify(userData),
@@ -424,24 +424,64 @@ export class ApiClient {
     return this.handleResponse<User>(response);
   }
 
-  // 切换用户状态 (启用/禁用)
-  static async toggleUserStatus(id: number, is_active: boolean): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}/toggle-status`, {
-      method: "PATCH",
-      headers: this.getHeaders(true),
-      body: JSON.stringify({ is_active }),
-    });
-
-    return this.handleResponse<User>(response);
-  }
-
   // 删除用户
   static async deleteUser(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/admin/users/${id}`, {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/users/${id}`, {
       method: "DELETE",
       headers: this.getHeaders(true),
     });
 
+    return this.handleResponse<{ success: boolean; message: string }>(response);
+  }
+
+  // =============================================================================
+  // Role Admin 相关API方法 (新增)
+  // =============================================================================
+
+  //...
+  static async getRoleById(id: number): Promise<RoleInfo> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/roles/${id}`, {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse<RoleInfo>(response);
+  }
+
+  // 获取所有角色
+  static async getRoles(): Promise<RoleInfo[]> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/roles`, {
+      method: "GET",
+      headers: this.getHeaders(true),
+    });
+    return this.handleResponse<RoleInfo[]>(response);
+  }
+
+  // 创建新角色
+  static async createRole(roleData: RoleCreate): Promise<RoleInfo> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/roles`, {
+      method: "POST",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(roleData),
+    });
+    return this.handleResponse<RoleInfo>(response);
+  }
+
+  // 更新角色
+  static async updateRole(id: number, roleData: RoleUpdate): Promise<RoleInfo> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/roles/${id}`, {
+      method: "PUT",
+      headers: this.getHeaders(true),
+      body: JSON.stringify(roleData),
+    });
+    return this.handleResponse<RoleInfo>(response);
+  }
+
+  // 删除角色
+  static async deleteRole(id: number): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE_URL}${API_V1_STR}/auth/roles/${id}`, {
+      method: "DELETE",
+      headers: this.getHeaders(true),
+    });
     return this.handleResponse<{ success: boolean; message: string }>(response);
   }
 }
@@ -466,12 +506,12 @@ export class AuthStorage {
     return localStorage.getItem(this.TOKEN_TYPE_KEY);
   }
 
-  static getUserInfo(): UserInfo | null {
+  static getUserInfo(): User | null {
     const userInfoStr = localStorage.getItem(this.USER_INFO_KEY);
     if (!userInfoStr) return null;
 
     try {
-      return JSON.parse(userInfoStr) as UserInfo;
+      return JSON.parse(userInfoStr) as User;
     } catch (error) {
       console.error("Failed to parse user info:", error);
       return null;
@@ -502,7 +542,7 @@ export class AuthError extends Error {
 }
 
 // 常用的认证检查函数
-export function requireAuth(): UserInfo {
+export function requireAuth(): User {
   const userInfo = AuthStorage.getUserInfo();
   if (!userInfo) {
     throw new AuthError("User not authenticated");
@@ -518,4 +558,4 @@ export function hasRole(requiredRole: string): boolean {
 export function hasAnyRole(requiredRoles: string[]): boolean {
   const userInfo = AuthStorage.getUserInfo();
   return userInfo ? requiredRoles.includes(userInfo.role) : false;
-} 
+}

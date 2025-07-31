@@ -54,23 +54,17 @@ const ShipmentDetail = () => {
 
     try {
       setLoading(true);
-      const response = await ApiClient.getShipmentById(parseInt(id));
-      
-      if (response.success) {
-        setShipment(response.data);
-      } else {
-        toast({
-          title: "获取货运详情失败",
-          description: response.message,
-          variant: "destructive",
-        });
-        navigate("/shipments");
-      }
+      // 直接将API调用结果赋值给 shipmentData，因为API返回的是 Shipment 对象
+      const shipmentData = await ApiClient.getShipmentById(parseInt(id));
+
+      // API调用成功，直接设置shipment状态
+      setShipment(shipmentData);
     } catch (error) {
       console.error("Error loading shipment detail:", error);
+      // API调用失败，在catch块中处理错误
       toast({
-        title: "网络错误",
-        description: "无法加载货运详情，请检查网络连接",
+        title: "获取货运详情失败",
+        description: error instanceof Error ? error.message : "无法加载货运详情，请检查网络连接",
         variant: "destructive",
       });
       navigate("/shipments");

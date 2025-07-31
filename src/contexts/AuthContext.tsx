@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { AuthStorage, ApiClient, type UserInfo } from "@/lib/api";
+import { AuthStorage, ApiClient, type User } from "@/lib/api";
 
 interface AuthContextType {
-  user: UserInfo | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: UserInfo, token: string) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -17,7 +17,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const login = (userData: UserInfo, token: string) => {
+  const login = (userData: User, token: string) => {
     setUser(userData);
     setIsAuthenticated(true);
   };

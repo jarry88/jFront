@@ -9,11 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ApiClient, type User, type UserListParams } from "@/lib/api";
-import { Plus, Search, UserCheck, UserX, Edit, Trash2, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { ApiClient, type User, type UserListParams, type UserListResponse } from "@/lib/api"; // 新增 UserListResponse
+import { Plus, Search, Edit, Trash2, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DashboardHeader from "@/components/DashboardHeader";
+import { format } from "date-fns";
 
 interface UserListState {
   users: User[];
@@ -57,28 +57,29 @@ const UserList = () => {
 
   // 用户角色选项
   const roleOptions = [
-    { value: "", label: "所有角色" },
-    { value: "admin", label: "管理员" },
-    { value: "sales_manager", label: "销售经理" },
-    { value: "sales_rep", label: "销售代表" },
-    { value: "operations", label: "运营" },
-    { value: "customer_service", label: "客服" },
-    { value: "finance", label: "财务" },
-    { value: "user", label: "普通用户" },
+    { value: "all", label: "All Roles" },
+    { value: "admin", label: "Admin" },
+    { value: "sales_manager", label: "Sales Manager" },
+    { value: "sales_rep", label: "Sales Rep" },
+    { value: "operations", label: "Operations" },
+    { value: "customer_service", label: "Customer Service" },
+    { value: "finance", label: "Finance" },
+    { value: "user", label: "User" },
   ];
 
   // 状态选项
   const statusOptions = [
-    { value: "", label: "所有状态" },
-    { value: "true", label: "启用" },
-    { value: "false", label: "禁用" },
+    { value: "all", label: "All Status" },
+    { value: "true", label: "Active" },
+    { value: "false", label: "Inactive" },
   ];
 
   // 获取用户列表
   const fetchUsers = async (params: UserListParams = filters) => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      const response = await ApiClient.getUsers(params);
+      const response: UserListResponse = await ApiClient.getUsers(params);
+
       setState(prev => ({
         ...prev,
         users: response.items,
@@ -93,9 +94,9 @@ const UserList = () => {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : "获取用户列表失败",
+        error: error instanceof Error ? error.message : "Failed to fetch user list",
       }));
-      toast.error("获取用户列表失败");
+      toast.error("Failed to fetch user list");
     }
   };
 
@@ -113,7 +114,7 @@ const UserList = () => {
 
   // 角色筛选
   const handleRoleFilter = (role: string) => {
-    const newFilters = { ...filters, role: role || undefined, page: 1 };
+    const newFilters = { ...filters, role: role === "all" ? undefined : role, page: 1 };
     setFilters(newFilters);
     fetchUsers(newFilters);
   };
@@ -139,14 +140,15 @@ const UserList = () => {
 
   // 切换用户状态
   const handleToggleUserStatus = async (user: User) => {
+    const newStatus = !user.is_active;
     try {
       setActionLoading(user.id);
-      await ApiClient.toggleUserStatus(user.id, !user.is_active);
-      toast.success(`用户已${user.is_active ? '禁用' : '启用'}`);
+      await ApiClient.updateUser(user.id, { is_active: newStatus });
+      toast.success(`User ${user.username} is now ${newStatus ? 'active' : 'inactive'}`);
       fetchUsers(); // 刷新列表
     } catch (error) {
       console.error("Failed to toggle user status:", error);
-      toast.error("操作失败");
+      toast.error("Failed to toggle user status");
     } finally {
       setActionLoading(null);
     }
@@ -159,12 +161,12 @@ const UserList = () => {
     try {
       setActionLoading(deleteDialog.user.id);
       await ApiClient.deleteUser(deleteDialog.user.id);
-      toast.success("用户已删除");
+      toast.success("User has been deleted");
       setDeleteDialog({ open: false, user: null });
       fetchUsers(); // 刷新列表
     } catch (error) {
       console.error("Failed to delete user:", error);
-      toast.error("删除失败");
+      toast.error("Failed to delete user");
     } finally {
       setActionLoading(null);
     }
@@ -190,11 +192,11 @@ const UserList = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <DashboardHeader />
       <PageHeader
-        title="用户管理"
-        description="管理系统用户账户"
+        title="User Management"
+        description="Manage system user accounts and permissions."
         breadcrumbs={[
-          { label: "系统管理" },
-          { label: "用户管理" },
+          { label: "System Administration" },
+          { label: "User Management" },
         ]}
         actions={
           <>
@@ -204,11 +206,11 @@ const UserList = () => {
               disabled={state.loading}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              刷新
+              Refresh
             </Button>
             <Button onClick={() => navigate("/admin/users/new")}>
               <Plus className="w-4 h-4 mr-2" />
-              添加用户
+              Add User
             </Button>
           </>
         }
@@ -216,218 +218,217 @@ const UserList = () => {
 
       <div className="flex-1 p-6 space-y-6">
 
-      {/* 筛选和搜索 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>筛选条件</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="搜索用户名、邮箱、姓名..."
-                  value={filters.search || ""}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={filters.role || ""} onValueChange={handleRoleFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="选择角色" />
-              </SelectTrigger>
-              <SelectContent>
-                {roleOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select 
-              value={filters.is_active === undefined ? "" : filters.is_active.toString()} 
-              onValueChange={handleStatusFilter}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="状态" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 用户列表 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            用户列表 
-            {state.total > 0 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                共 {state.total} 个用户
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {state.loading ? (
-            <div className="flex justify-center py-8">
-              <RefreshCw className="w-6 h-6 animate-spin" />
-            </div>
-          ) : state.error ? (
-            <div className="text-center py-8 text-red-500">
-              {state.error}
-            </div>
-          ) : state.users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              没有找到用户
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>用户名</TableHead>
-                    <TableHead>姓名</TableHead>
-                    <TableHead>邮箱</TableHead>
-                    <TableHead>角色</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>最后登录</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {state.users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.username}</TableCell>
-                      <TableCell>{user.first_name} {user.last_name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {getRoleDisplayName(user.role)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={user.is_active}
-                            onCheckedChange={() => handleToggleUserStatus(user)}
-                            disabled={actionLoading === user.id}
-                          />
-                          <Badge variant={user.is_active ? "default" : "secondary"}>
-                            {user.is_active ? "启用" : "禁用"}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDate(user.last_login)}</TableCell>
-                      <TableCell>{formatDate(user.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/users/${user.id}/edit`)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteDialog({ open: true, user })}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {/* 分页 */}
-              {state.pages > 1 && (
-                <div className="flex justify-between items-center mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    显示第 {(state.page - 1) * state.size + 1} - {Math.min(state.page * state.size, state.total)} 条，
-                    共 {state.total} 条记录
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(state.page - 1)}
-                      disabled={state.page <= 1}
-                    >
-                      上一页
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, state.pages) }, (_, i) => {
-                        const pageNum = i + Math.max(1, state.page - 2);
-                        if (pageNum > state.pages) return null;
-                        return (
-                          <Button
-                            key={pageNum}
-                            variant={pageNum === state.page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handlePageChange(pageNum)}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(state.page + 1)}
-                      disabled={state.page >= state.pages}
-                    >
-                      下一页
-                    </Button>
-                  </div>
+        {/* 筛选和搜索 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filters & Search</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by username, email, name..."
+                    value={filters.search || ""}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+              <Select value={filters.role || "all"} onValueChange={handleRoleFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={filters.is_active === undefined ? "all" : filters.is_active.toString()}
+                onValueChange={handleStatusFilter}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* 删除确认对话框 */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, user: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>
-              确定要删除用户 "{deleteDialog.user?.username}" 吗？此操作不可撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialog({ open: false, user: null })}
-            >
-              取消
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteUser}
-              disabled={actionLoading === deleteDialog.user?.id}
-            >
-              {actionLoading === deleteDialog.user?.id ? "删除中..." : "删除"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* 用户列表 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              User List
+              {state.total > 0 && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                ({state.total} users)
+              </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {state.loading ? (
+              <div className="flex justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin" />
+              </div>
+            ) : state.error ? (
+              <div className="text-center py-8 text-red-500">
+                {state.error}
+              </div>
+            ) : state.users.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No users found
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Login</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {state.users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell>{user.first_name} {user.last_name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {getRoleDisplayName(user.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={user.is_active}
+                              onCheckedChange={() => handleToggleUserStatus(user)}
+                              disabled={actionLoading === user.id}
+                            />
+                            <Badge variant={user.is_active ? "default" : "secondary"}>
+                              {user.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatDate(user.last_login)}</TableCell>
+                        <TableCell>{formatDate(user.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/users/edit/${user.id}`)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteDialog({ open: true, user })}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* 分页 */}
+                {state.pages > 1 && (
+                  <div className="flex justify-between items-center mt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {(state.page - 1) * state.size + 1} - {Math.min(state.page * state.size, state.total)} of {state.total} records
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(state.page - 1)}
+                        disabled={state.page <= 1}
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, state.pages) }, (_, i) => {
+                          const pageNum = i + Math.max(1, state.page - 2);
+                          if (pageNum > state.pages) return null;
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={pageNum === state.page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(state.page + 1)}
+                        disabled={state.page >= state.pages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 删除确认对话框 */}
+        <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, user: null })}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete user "{deleteDialog.user?.username}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialog({ open: false, user: null })}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteUser}
+                disabled={actionLoading === deleteDialog.user?.id}
+              >
+                {actionLoading === deleteDialog.user?.id ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

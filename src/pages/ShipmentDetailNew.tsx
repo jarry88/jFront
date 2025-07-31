@@ -1,4 +1,7 @@
+// src/pages/ShipmentDetailNew.tsx
+
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom"; // 新增 useParams, useNavigate
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,26 +25,32 @@ import {
 } from "lucide-react";
 import { ApiClient, Shipment } from "@/lib/api";
 
-interface ShipmentDetailNewProps {
-  shipmentId: number;
-  onBack: () => void;
-}
+// 移除 ShipmnetDetailNewProps 接口，组件不再需要外部传入 props
+// interface ShipmentDetailNewProps {
+//   shipmentId: number;
+//   onBack: () => void;
+// }
 
-const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
+// 修改组件定义，不再接收 props
+const ShipmentDetailNew = () => {
+  const { id } = useParams<{ id: string }>(); // 使用 useParams 从路由中获取 id
+  const navigate = useNavigate(); // 使用 useNavigate 来实现返回逻辑
   const { toast } = useToast();
-  
+
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState("");
 
   const loadShipmentDetail = async () => {
-    if (!shipmentId) {
+    // 确保 id 存在且是有效的数字
+    const shipmentId = id ? parseInt(id, 10) : null;
+    if (!shipmentId || isNaN(shipmentId)) {
       toast({
         title: "Error",
         description: "Invalid shipment ID",
         variant: "destructive",
       });
-      onBack();
+      navigate("/shipments"); // 重定向到 shipments 列表页
       return;
     }
 
@@ -56,7 +65,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
         description: "Unable to load shipment details",
         variant: "destructive",
       });
-      onBack();
+      navigate("/shipments"); // 重定向到 shipments 列表页
     } finally {
       setLoading(false);
     }
@@ -65,13 +74,17 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   useEffect(() => {
     loadShipmentDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipmentId]);
+  }, [id]); // 依赖 id，当 id 改变时重新加载数据
 
-  // Mock data functions
+  const handleBack = () => {
+    navigate(-1); // 返回上一页
+  };
+
+  // Mock data functions ... (保持不变)
   const getCompanyName = (companyId: number) => {
     const companies = {
       1: "Global Trading Corp",
-      2: "Pacific Exports Ltd", 
+      2: "Pacific Exports Ltd",
       3: "European Distributors",
       4: "Hamburg Traders GmbH",
       5: "West Coast Imports",
@@ -85,7 +98,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   const getPortName = (portId: number) => {
     const ports = {
       1: "Los Angeles, CA",
-      2: "Shanghai, China", 
+      2: "Shanghai, China",
       3: "Hamburg, Germany",
       4: "New York, NY",
       5: "Rotterdam, Netherlands",
@@ -99,7 +112,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   const getPortCode = (portId: number) => {
     const codes = {
       1: "USLAX",
-      2: "CNSHA", 
+      2: "CNSHA",
       3: "DEHAM",
       4: "USNYC",
       5: "NLRTM",
@@ -113,7 +126,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   const getTerminal = (portId: number) => {
     const terminals = {
       1: "APM Terminal",
-      2: "Yangshan Terminal", 
+      2: "Yangshan Terminal",
       3: "Container Terminal Tollerort",
       4: "Red Hook Container Terminal",
       5: "ECT Delta Terminal",
@@ -127,7 +140,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   const getContact = (companyId: number) => {
     const contacts = {
       1: "Sarah Chen",
-      2: "Tom Wilson", 
+      2: "Tom Wilson",
       3: "Hans Mueller",
       4: "Klaus Weber",
       5: "Mike Johnson",
@@ -152,23 +165,23 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "2-digit", 
+      month: "2-digit",
       day: "2-digit"
     });
   };
 
   const getProgressStep = (currentStatusId: number) => {
-    if (currentStatusId >= 20) return 5; // Delivered
-    if (currentStatusId >= 19) return 4; // At Destination Port
-    if (currentStatusId >= 17) return 3; // Sailed
-    if (currentStatusId >= 16) return 2; // At Port of Loading
-    if (currentStatusId >= 15) return 1; // Booked
+    if (currentStatusId >= 20) return 5;
+    if (currentStatusId >= 19) return 4;
+    if (currentStatusId >= 17) return 3;
+    if (currentStatusId >= 16) return 2;
+    if (currentStatusId >= 15) return 1;
     return 0;
   };
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    
+
     toast({
       title: "Success",
       description: "Comment added successfully",
@@ -192,7 +205,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-900">Shipment not found</h2>
-          <Button onClick={onBack} className="mt-4">
+          <Button onClick={handleBack} className="mt-4">
             Back to Shipments
           </Button>
         </div>
@@ -211,18 +224,18 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
-              onClick={onBack}
+              onClick={handleBack}
               className="text-gray-600 hover:text-gray-900 p-0 h-auto font-normal"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back to Dashboard
             </Button>
-            
+
             {/* Maersk Logo Placeholder */}
             <div className="w-20 h-8 bg-blue-600 flex items-center justify-center text-white text-xs font-bold rounded">
               Maersk Logo
             </div>
-            
+
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 Shipment {shipment.shipment_number}
@@ -232,7 +245,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <Badge className={currentStatus.color}>
               {currentStatus.text}
@@ -273,8 +286,8 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                     <div key={index} className="flex flex-col items-center space-y-2">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         isCompleted ? "bg-green-100 text-green-600" :
-                        isCurrent ? "bg-blue-100 text-blue-600" :
-                        "bg-gray-100 text-gray-400"
+                          isCurrent ? "bg-blue-100 text-blue-600" :
+                            "bg-gray-100 text-gray-400"
                       }`}>
                         <Icon className="w-5 h-5" />
                       </div>
@@ -308,7 +321,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                       <div className="text-sm text-gray-600">Terminal: {getTerminal(shipment.origin_port_id)}</div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
                       <MapPin className="w-4 h-4 mr-2" />
@@ -333,7 +346,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                       <div className="text-sm text-gray-600">Contact: {getContact(shipment.shipper_company_id)}</div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
                       <Package className="w-4 h-4 mr-2" />
@@ -352,9 +365,9 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                 <div>
                   <div className="text-sm text-gray-600">Container Type</div>
                   <div className="font-semibold">
-                    {shipment.container_size_type_id === 1 ? "40ft HC" : 
-                     shipment.container_size_type_id === 2 ? "20ft" : 
-                     shipment.container_size_type_id === 3 ? "40ft" : "40ft"}
+                    {shipment.container_size_type_id === 1 ? "40ft HC" :
+                      shipment.container_size_type_id === 2 ? "20ft" :
+                        shipment.container_size_type_id === 3 ? "40ft" : "40ft"}
                   </div>
                 </div>
                 <div>
@@ -410,7 +423,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
                     <FileText className="w-5 h-5 text-blue-600" />
@@ -452,7 +465,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                   <p className="text-sm">Container loaded successfully. All documentation verified.</p>
                   <p className="text-xs text-gray-600 mt-2">2025-01-10 14:30</p>
                 </div>
-                
+
                 <div className="p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center space-x-2 mb-2">
                     <User className="w-4 h-4 text-orange-600" />
@@ -463,7 +476,7 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                   <p className="text-xs text-gray-600 mt-2">2025-01-10 18:45</p>
                 </div>
               </div>
-              
+
               <div className="pt-4 border-t">
                 <Textarea
                   placeholder="Add a comment or note..."
@@ -490,12 +503,12 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
                 <AlertTriangle className="w-4 h-4" />
                 <span>Request Update</span>
               </Button>
-              
+
               <Button variant="outline" className="w-full justify-start space-x-2">
                 <AlertTriangle className="w-4 h-4" />
                 <span>Flag Issue</span>
               </Button>
-              
+
               <Button variant="outline" className="w-full justify-start space-x-2">
                 <Upload className="w-4 h-4" />
                 <span>Add Document</span>
@@ -508,4 +521,4 @@ const ShipmentDetailNew = ({ shipmentId, onBack }: ShipmentDetailNewProps) => {
   );
 };
 
-export default ShipmentDetailNew; 
+export default ShipmentDetailNew;

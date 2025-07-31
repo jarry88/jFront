@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Table, Kanban, Calculator } from "lucide-react";
+import { MessageSquare, Table, Kanban, Calculator, Users, ShieldCheck, RefreshCw, Settings, Mail, BriefcaseBusiness } from "lucide-react"; // 新增 Users, ShieldCheck
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ViewType = "chat" | "table" | "kanban" | "virtual-rate";
 
@@ -12,38 +13,69 @@ interface DashboardSidebarProps {
 }
 
 const DashboardSidebar = ({
-  currentView,
-  onViewChange,
-  isCollapsed,
-}: DashboardSidebarProps) => {
+                            currentView,
+                            onViewChange,
+                            isCollapsed,
+                          }: DashboardSidebarProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // 使用 useAuth Hook 获取用户信息
 
   const menuItems = [
     {
       id: "chat" as ViewType,
-      label: "Chat Interface",
+      label: "Chat",
       icon: MessageSquare,
-      description: "AI-powered conversations",
+      path: "/dashboard",
+      requiredRoles: [] // 所有登录用户可见
     },
     {
       id: "table" as ViewType,
-      label: "Table View",
-      icon: Table,
-      description: "Data in structured format",
+      label: "Shipments",
+      icon: BriefcaseBusiness,
+      path: "/shipments",
+      requiredRoles: []
     },
     {
       id: "kanban" as ViewType,
-      label: "Task View",
+      label: "Tasks",
       icon: Kanban,
-      description: "Kanban board management",
+      path: "/dashboard", // 假设 kanban 也在 /dashboard 下
+      requiredRoles: []
     },
     {
       id: "virtual-rate" as ViewType,
-      label: "Virtual Rate Administration",
+      label: "Virtual Rates",
       icon: Calculator,
-      description: "Rate management & analysis",
+      path: "/submit-rates",
+      requiredRoles: ["admin", "sales_manager", "operations"]
     },
+    {
+      id: "user-management",
+      label: "User Management",
+      icon: Users,
+      path: "/admin/users",
+      requiredRoles: ["admin"],
+    },
+    {
+      id: "role-management",
+      label: "Role Management",
+      icon: ShieldCheck,
+      path: "/admin/roles",
+      requiredRoles: ["admin"],
+    },
+    // 其他可能的菜单项
   ];
+
+  // 检查用户是否拥有所需角色
+  const hasRequiredRole = (item: { requiredRoles: string[] }) => {
+    if (!item.requiredRoles || item.requiredRoles.length === 0) {
+      return true; // 没有角色限制，所有登录用户可见
+    }
+    return user && item.requiredRoles.includes(user.role);
+  };
+
+  // 过滤出用户有权访问的菜单项
+  const filteredMenuItems = menuItems.filter(hasRequiredRole);
 
   return (
     <aside
@@ -54,9 +86,9 @@ const DashboardSidebar = ({
           <h2 className="text-sm font-semibold text-slate-700 mb-4 px-2"></h2>
         )}
 
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentView === item.id;
+          const isActive = window.location.pathname.startsWith(item.path);
 
           return (
             <Button
@@ -67,13 +99,13 @@ const DashboardSidebar = ({
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-slate-100 text-slate-700"
               }`}
-              onClick={() => onViewChange(item.id)}
+              onClick={() => navigate(item.path)}
               title={isCollapsed ? item.label : undefined}
             >
               <Icon className="w-5 h-5" />
               {!isCollapsed && (
                 <div className="text-left">
-                  {item.id === "chat" ? "Chat" : item.label}
+                  {item.label}
                 </div>
               )}
             </Button>

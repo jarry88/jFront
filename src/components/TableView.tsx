@@ -304,14 +304,14 @@ const TableView = () => {
   };
 
   const renderTableContent = () => {
-    if (currentView === "shipments" && selectedShipmentId) {
-      return (
-        <ShipmentDetailNew
-          shipmentId={selectedShipmentId}
-          onBack={() => setSelectedShipmentId(null)}
-        />
-      );
-    }
+    // if (currentView === "shipments" && selectedShipmentId) {
+    //   return (
+    //     <ShipmentDetailNew
+    //       shipmentId={selectedShipmentId}
+    //       onBack={() => setSelectedShipmentId(null)}
+    //     />
+    //   );
+    // }
     switch (currentView) {
       case "rates":
         return <RatesTable searchQuery={searchQuery} />;

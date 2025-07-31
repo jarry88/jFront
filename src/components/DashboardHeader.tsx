@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Settings, MessageCircle, Mail, Users } from "lucide-react";
+import { Settings, MessageCircle, Mail,LogOut} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
+  const { logout } = useAuth();
   const handleLogoClick = () => {
     navigate("/");
   };
@@ -25,13 +24,20 @@ const DashboardHeader = () => {
     navigate("/submit-rates");
   };
 
-  const handleUserAdminClick = () => {
-    navigate("/admin/users");
+  const handleLogout = async () => {
+    try {
+      await logout(); // 調用 AuthContext 中的 logout 函數
+      navigate("/"); // 登出後重定向到登入頁面
+    } catch (error) {
+      console.error("Failed to log out:", error);
+      // 可以使用 toast 提示用戶登出失敗
+      // toast({
+      //   title: "登出失敗",
+      //   description: "請稍後再試。",
+      //   variant: "destructive",
+      // });
+    }
   };
-
-  // Check if user is admin
-  const isAdmin = user?.role === "admin";
-
   return (
     <header className="w-full bg-white border-b border-slate-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -55,19 +61,6 @@ const DashboardHeader = () => {
 
         {/* Right side - Settings, Help, User */}
         <div className="flex items-center space-x-4">
-          {/* User Admin (only for admin users) */}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleUserAdminClick}
-              className="hover:bg-slate-100"
-              title="User Management"
-            >
-              <Users className="w-5 h-5" />
-            </Button>
-          )}
-
           {/* Rate Submission */}
           <Button
             variant="ghost"
@@ -101,8 +94,18 @@ const DashboardHeader = () => {
 
           {/* User Name */}
           <div className="text-sm font-medium text-foreground">
-            {user ? `${user.first_name} ${user.last_name}` : "User"}
+            Newton Davis
           </div>
+          {/* LogOut */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout} // 绑定登出函数
+            className="hover:bg-slate-100"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" /> {/* 登出圖示 */}
+          </Button>
         </div>
       </div>
     </header>

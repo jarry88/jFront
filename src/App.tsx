@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,14 +14,19 @@ import ShipmentDetailNew from "./pages/ShipmentDetailNew";
 import ShipmentList from "./pages/ShipmentList";
 import CRMProfile from "./pages/CRMProfile";
 import RateSubmission from "./pages/RateSubmission";
-import UserList from "./pages/UserList";
-import UserForm from "./pages/UserForm";
 import NotFound from "./pages/NotFound";
 import { AuthDemo } from "./components/AuthDemo";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LoginForm } from "./components/LoginForm";
 import { AuthStorage } from "./lib/api";
+
+// 导入新的用户和角色管理页面
+import UserList from "./pages/UserList";
+import UserForm from "./pages/UserForm";
+import RoleList from "./pages/RoleList";
+import RoleForm from "./pages/RoleForm";
+
 
 const queryClient = new QueryClient();
 
@@ -43,6 +50,7 @@ const LoginPage = () => {
   );
 };
 
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -53,69 +61,95 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LoginPage />} />
             <Route path="/auth-demo" element={<AuthDemo />} />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/shipments" 
-              element={
-                <ProtectedRoute>
-                  <ShipmentList />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/shipment/:id" 
-              element={
-                <ProtectedRoute>
-                  <ShipmentDetailNew />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/crm/:id" 
-              element={
-                <ProtectedRoute requiredRoles={["admin", "sales_manager", "sales_rep", "customer_service"]}>
-                  <CRMProfile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/submit-rates" 
-              element={
-                <ProtectedRoute requiredRoles={["admin", "sales_manager", "operations"]}>
-                  <RateSubmission />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/users" 
+            {/* --- User Management Routes --- */}
+            <Route
+              path="/admin/users"
               element={
                 <ProtectedRoute requiredRoles={["admin"]}>
                   <UserList />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/users/new" 
+            <Route
+              path="/admin/users/new"
               element={
                 <ProtectedRoute requiredRoles={["admin"]}>
                   <UserForm />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/users/:id/edit" 
+            <Route
+              path="/admin/users/edit/:id"
               element={
                 <ProtectedRoute requiredRoles={["admin"]}>
                   <UserForm />
                 </ProtectedRoute>
-              } 
+              }
+            />
+            {/* --- Role Management Routes --- */}
+            <Route
+              path="/admin/roles"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <RoleList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/roles/new"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <RoleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/roles/edit/:id"
+              element={
+                <ProtectedRoute requiredRoles={["admin"]}>
+                  <RoleForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shipments"
+              element={
+                <ProtectedRoute>
+                  <ShipmentList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shipment/:id"
+              element={
+                <ProtectedRoute>
+                  <ShipmentDetailNew />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/crm/:id"
+              element={
+                <ProtectedRoute requiredRoles={["admin", "sales_manager", "sales_rep", "customer_service"]}>
+                  <CRMProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/submit-rates"
+              element={
+                <ProtectedRoute requiredRoles={["admin", "sales_manager", "operations"]}>
+                  <RateSubmission />
+                </ProtectedRoute>
+              }
             />
             <Route path="/home" element={<Index />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
